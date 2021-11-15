@@ -9,7 +9,7 @@
 #include <poll.h>
 
 #define MAX 400
-#define PORT 8080
+#define PORT 8000
 #define SA struct sockaddr
 
 float encontrar_mayor(float *numeros, int tamano)
@@ -25,31 +25,46 @@ float encontrar_mayor(float *numeros, int tamano)
 	return mayor_actual;
 }
 
-// Function designed for chat between client and server.
 void func(int sockfd)
 {
+	int call_output;
 	while (1)
 	{
 		int selected_option;
-		read(sockfd, &selected_option, sizeof(int));
+		int recv_response = recv(sockfd, &selected_option, sizeof(int), MSG_NOSIGNAL);
+		if (recv_response == 0)
+		{
+			printf("Cliente desconectado.\nCerrando servidor.\n");
+			break;
+		}
 		if (selected_option == 1)
 		{
-			break;
+			int anchoMatrices, altoMatrices, tamano_total;
+			recv(sockfd, &anchoMatrices, sizeof(int), MSG_NOSIGNAL);
+			recv(sockfd, &altoMatrices, sizeof(int), MSG_NOSIGNAL);
+			tamano_total = anchoMatrices * altoMatrices;
+			printf("Ancho de matrices es: %d\nAlto de matrices es: %d\n", anchoMatrices, altoMatrices);
+			float matriz1[tamano_total];
+			float matriz2[tamano_total];
+			recv(sockfd, &matriz1, sizeof(float) * tamano_total, MSG_NOSIGNAL);
+			recv(sockfd, &matriz2, sizeof(float) * tamano_total, MSG_NOSIGNAL);
+			float matriz_final[tamano_total];
+			for (int i = 0; i < tamano_total; i++)
+			{
+				matriz_final[i] = matriz1[i] + matriz2[i];
+			}
+			send(sockfd, matriz_final, 4 * tamano_total, MSG_NOSIGNAL);
 		}
 		else if (selected_option == 2)
 		{
 			int vector_size;
-			read(sockfd, &vector_size, sizeof(int));
+			recv(sockfd, &vector_size, sizeof(int), MSG_NOSIGNAL);
 			printf("El tamaño del vector es: %d\n", vector_size);
 			float floats[vector_size];
-			while (1)
-			{
-				read(sockfd, floats, sizeof(floats));
-				break;
-			}
+			recv(sockfd, floats, sizeof(floats), MSG_NOSIGNAL);
 			float greatest = encontrar_mayor(floats, vector_size);
 			printf("%f\n", greatest);
-			write(sockfd, &greatest, sizeof(int));
+			send(sockfd, &greatest, 4, MSG_NOSIGNAL);
 		}
 	}
 }
