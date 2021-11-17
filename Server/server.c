@@ -1,9 +1,15 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define SA struct sockaddr
+
+int socketfd, connectionfd, length;
+struct sockaddr_in servaddr, cli;
 
 // Función para encontrar el flotante mayor en un vector.
 float find_highest(float *numbers, int size)
@@ -60,8 +66,8 @@ void matrices(int socketfd)
 			// y elementos totales de las matrices.
 			int matrix_columns, matrix_rows, matrix_elements;
 
-			// Leemos del socket para obtener el los números anteriormente
-			// mencionados y calculamos el total de elementos en las matricecs
+			// Leemos del socket para obtener los números anteriormente
+			// mencionados y calculamos el total de elementos en las matrices
 			// en base a ellos.
 			recv(socketfd, &matrix_columns, sizeof(int), MSG_NOSIGNAL);
 			recv(socketfd, &matrix_rows, sizeof(int), MSG_NOSIGNAL);
@@ -131,14 +137,14 @@ void matrices(int socketfd)
 // Driver function
 int main()
 {
-	int socketfd, connectionfd, length;
-	struct sockaddr_in servaddr, cli;
-
 	// Creación y verificación del socket.
 	socketfd = socket(AF_INET, SOCK_STREAM, 0);
 	// Si existe algún error en la creación del socket.
 	if (socketfd == -1)
 		exit(0);
+
+	int option = 1;
+	setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option, sizeof(option));
 
 	memset(&servaddr, 0, sizeof(servaddr));
 

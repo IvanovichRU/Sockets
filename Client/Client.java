@@ -8,141 +8,214 @@ import java.nio.ByteOrder;
 import java.util.Scanner;
 
 class Client {
-    
-    public static Scanner entrada;
+
+    // Declaramos un escaner para leer entrada del usuario en diferentes
+    // puntos del programa.
+    public static Scanner input;
+
     public static void main(String[] args) {
-        entrada = new Scanner(System.in);
+
+        // Inicializamos el objeto de escaner declarado anteriormente.
+        input = new Scanner(System.in);
+
+        // Declaramos un objeto Socket donde escribiremos y leeremos.
         Socket socket;
-        DataOutputStream salidaSocket;
-        DataInputStream entradaSocket;
-        int opcion = 0;
+
+        // Declaramos objetos DataOutputStream y DataInputStream para
+        // leer y escribir al socket.
+        DataOutputStream socketOut;
+        DataInputStream socketIn;
+
+        // Inicializamos una variable opción que determinará la
+        // operación a realizar.
+        int option = 0;
+
+        // Debemos encapsular la inicialización de los objetos
+        // Socket, DataOutputStream y DataInputStream en un try
+        // debido a que pueden lanzar excepciones.
         try {
+            
+            // Inicializamos el socket con la IP de loopback
+            // en el puerto 8000
             socket = new Socket("127.0.0.1", 8000);
-            salidaSocket = new DataOutputStream(socket.getOutputStream());
-            entradaSocket = new DataInputStream(socket.getInputStream());
-            mostrarMenu();
-            opcion = entrada.nextInt();
-            while (opcion != 3) {
-                if (opcion == 1) {
-                    // Enviar la opción seleccionada al servidor.
-                    ByteBuffer optionBuffer = ByteBuffer.allocate(4);
-                    optionBuffer.order(ByteOrder.LITTLE_ENDIAN);
-                    optionBuffer.putInt(opcion);
-                    salidaSocket.write(optionBuffer.array());
-                    salidaSocket.flush();
 
-                    System.out.print("Ingrese el número de columnas de la primer matriz: ");
-                    int anchoMatrizUno = entrada.nextInt();
+            // Inicializamos los objetos Data___Stream obteniendo
+            // objetos del socket.
+            socketOut = new DataOutputStream(socket.getOutputStream());
+            socketIn = new DataInputStream(socket.getInputStream());
 
-                    System.out.print("Ingrese el número de filas de la primer matriz: ");
-                    int altoMatrizUno = entrada.nextInt();
+            // Mostramos por primera vez el menú que se mostrará al usuario.
+            showMenu();
 
-                    System.out.print("Ingrese el número de columnas de la segunda matriz: ");
-                    int anchoMatrizDos = entrada.nextInt();
+            // Leemos qué opción elige el usuario con el escaner.
+            option = input.nextInt();
 
-                    System.out.print("Ingrese el número de filas de la segunda matriz: ");
-                    int altoMatrizDos = entrada.nextInt();
+            // Ahora dependiendo de la opción elegida, hacemos distintos procesos.
+            while (option != 3) {
 
-                    if (anchoMatrizUno != anchoMatrizDos || altoMatrizUno != altoMatrizDos) {
-                        System.out.println("Las matrices no son del mismo tamaño, la suma no es posible.");
+                // Si el usuario elige la opción uno:
+                if (option == 1) {
+
+                    // Escribimos al socket la opción seleccionada para que inicie
+                    // el proceso correcto de leer los datos necesarios.
+                    socketOut.write(intToByteArray(option));
+                    socketOut.flush();
+
+                    // Pedimos y leemos los tamaños de ambas matrices a sumar para
+                    // verificar que sean de las mismas dimensiones.
+                    System.out.print("Input the number of columns for the first matrix: ");
+                    int matrixOneWidth = input.nextInt();
+                    System.out.print("Input the number of rows for the first matrix: ");
+                    int matrixOneHeight = input.nextInt();
+                    System.out.print("Input the number of columns for the second matrix: ");
+                    int matrixTwoWidth = input.nextInt();
+                    System.out.print("Input the number of rows for the second matrix: ");
+                    int matrixTwoHeight = input.nextInt();
+
+                    // Revisamos que sean de las mismas dimensiones las matrices.
+                    if (matrixOneWidth != matrixTwoWidth || matrixOneHeight != matrixTwoHeight) {
+                        // Sino, solo se lo indicamos al usuario y regresamos al menú.
+                        System.out.println("The matrices are not the same size, the sum is not possible.");
                     }
                     else {
-                        ByteBuffer tamanosMatrices = ByteBuffer.allocate(8);
-                        tamanosMatrices.order(ByteOrder.LITTLE_ENDIAN);
-                        tamanosMatrices.putInt(anchoMatrizUno);
-                        tamanosMatrices.putInt(altoMatrizUno);
-                        salidaSocket.write(tamanosMatrices.array());
-                        salidaSocket.flush();
 
-                        System.out.println("Ingrese valores de la primer matriz:");
-                        int tamanoTotal = anchoMatrizUno * altoMatrizUno;
-                        float[][] matrizUno = leerValoresMatriz(anchoMatrizUno, altoMatrizDos);
-                        System.out.println("Ingrese valores de la segunda matriz:");
-                        float[][] matrizDos = leerValoresMatriz(anchoMatrizUno, altoMatrizDos);
+                        // Escribimos al socket los tamaños de las matrices.
+                        socketOut.write(intToByteArray(matrixOneWidth));
+                        socketOut.write(intToByteArray(matrixOneHeight));
+                        socketOut.flush();
 
-                        float[] matriz1DUno = matriz2Da1D(matrizUno, anchoMatrizUno, altoMatrizUno);
-                        float[] matriz1DDos = matriz2Da1D(matrizDos, anchoMatrizUno, altoMatrizUno);
+                        // Creamos una variable que contenga el número de elementos
+                        // totales de las matrices.
+                        int matrixElements = matrixOneWidth * matrixOneHeight;
 
-                        ByteBuffer matricesBuffer = ByteBuffer.allocate(tamanoTotal * 2 * 4);
-                        matricesBuffer.order(ByteOrder.LITTLE_ENDIAN);
-                        for (int i = 0; i < tamanoTotal; i++) {
-                            matricesBuffer.putFloat(matriz1DUno[i]);
-                        }
-                        for (int i = 0; i < tamanoTotal; i++) {
-                            matricesBuffer.putFloat(matriz1DDos[i]);
-                        }
-                        salidaSocket.write(matricesBuffer.array());
-                        salidaSocket.flush();
+                        // Pedimos y leemos los valores de ambas matrices.
+                        System.out.println("Input the first matrix's values:");
+                        float[][] matrixOne = readMatrixValues(matrixOneWidth, matrixTwoHeight);
+                        System.out.println("Input the second matrix's values");
+                        float[][] matrixTwo = readMatrixValues(matrixOneWidth, matrixTwoHeight);
 
-                        byte[] matrizResultanteBytes = new byte[4 * tamanoTotal];
-                        for (int i = 0; i < tamanoTotal * 4; i++) {
-                            matrizResultanteBytes[i] = entradaSocket.readByte();
+                        // Para el fácil manejo, el servidor recibe los datos de manera lineal
+                        // entonces debemos mover los valores leídos de un vector bidimensional
+                        // a uno lineal.
+                        float[] matrixOne1D = matrix2DTo1D(matrixOne, matrixOneWidth, matrixOneHeight);
+                        float[] matrixTwo1D = matrix2DTo1D(matrixTwo, matrixOneWidth, matrixOneHeight);
+
+                        // Escribimos los valores leídos de las matrices una vez
+                        // almacenados unidimensionalmente, al socket.
+                        socketOut.write(floatsToByteArray(matrixOne1D));
+                        socketOut.write(floatsToByteArray(matrixTwo1D));
+                        socketOut.flush();
+
+                        // Creamos un vector en donde almacenar el resultado de
+                        // la suma de matrices en preparación a la respuesta
+                        // del servidor.
+                        byte[] matrixResultBytes = new byte[4 * matrixElements];
+
+                        // Leemos los datos enviados al socket por el servidor
+                        // y los insertamos en el vector unidimensional
+                        // que creamos anteriormente.
+                        for (int i = 0; i < matrixElements * 4; i++) {
+                            matrixResultBytes[i] = socketIn.readByte();
                         }
-                        float[] matrizResultante = new float[tamanoTotal];
-                        ByteBuffer bufferResultante = ByteBuffer.wrap(matrizResultanteBytes);
-                        bufferResultante.order(ByteOrder.LITTLE_ENDIAN);
-                        for (int i = 0; i < tamanoTotal; i++) {
-                            matrizResultante[i] = bufferResultante.getFloat();
+
+                        // Los datos leídos del socket son bytes en crudo, entonces
+                        // deberemos convertirlos a floats en orden big endian
+                        // para poder imprimirlos desde el cliente en Java.
+
+                        // Creamos un vector de floats donde guardaremos los flotantes
+                        // ya convertidos.
+                        float[] matrixResult = new float[matrixElements];
+
+                        // Envolvemos el vector donde almacenamos los bytes en crudo
+                        // leídos del socket en un ByteBuffer para indicar a
+                        // Java que están en orden little endian.
+                        ByteBuffer resultBuffer = ByteBuffer.wrap(matrixResultBytes);
+                        resultBuffer.order(ByteOrder.LITTLE_ENDIAN);
+
+                        // Insertamos como flotantes en big endian los bytes
+                        // almacenados en el buffer al arreglo de floats
+                        // que preparamos anteriormente.
+                        for (int i = 0; i < matrixElements; i++) {
+                            matrixResult[i] = resultBuffer.getFloat();
                         }
-                        int contador = 0;
-                        System.out.println("La matriz resultante de la suma es:");
-                        for (int i = 0; i < altoMatrizUno; i++) {
-                            for (int j = 0; j < anchoMatrizUno; j++) {
-                                System.out.print(matrizResultante[contador] + "\t");
-                                contador++;
+
+                        // Creamos una variable de apoyo para imprimir los
+                        // valores de la matriz resultante en filas y columnas
+                        // siendo un vector lineal.
+                        int counter = 0;
+
+                        // Imprimimos la matriz resultante recorriendola con un
+                        // ciclo for.
+                        System.out.println("The resulting matrix from the sum is:");
+                        for (int i = 0; i < matrixOneHeight; i++) {
+                            for (int j = 0; j < matrixOneWidth; j++) {
+                                System.out.print(matrixResult[counter] + "\t");
+                                counter++;
                             }
                             System.out.println();
                         }
                         System.out.println();
-                    }
-                }
-                else if (opcion == 2) {
-                    ByteBuffer optionBuffer = ByteBuffer.allocate(4);
-                    optionBuffer.order(ByteOrder.LITTLE_ENDIAN);
-                    optionBuffer.putInt(opcion);
-                    salidaSocket.write(optionBuffer.array());
-                    salidaSocket.flush();
-    
-    
-                    System.out.println("¿De qué tamaño es el vector?");
-                    int vectorSize = entrada.nextInt();
-                    ByteBuffer buffer = ByteBuffer.allocate(4);
-                    buffer = buffer.order(ByteOrder.LITTLE_ENDIAN);
-                    buffer.putInt(vectorSize);
-                    salidaSocket.write(buffer.array());
-                    salidaSocket.flush();
-                    System.out.println("Tamaño del vector enviado.");
-                    
-                    buffer = ByteBuffer.allocate(4 * vectorSize);
-                    buffer = buffer.order(ByteOrder.LITTLE_ENDIAN);
-                    System.out.println("Ingrese los valores del vector.");
-                    for (int i = 0; i < vectorSize; i++) {
-                        System.out.println("Valor " + (i + 1) + ": ");
-                        buffer.putFloat(entrada.nextFloat());
-                    }
-                    salidaSocket.write(buffer.array());
-                    salidaSocket.flush();
-                    System.out.println("Vector enviado.");
 
-                    byte[] mayor = new byte[4];
-                    for (int i = 0; i < 4; i++) {
-                        mayor[i] = entradaSocket.readByte();
+                        // Finalmente salimos de esta condicional y regresamos al menú.
                     }
-                    float mayor_f = ByteBuffer.wrap(mayor).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-                    System.out.println("El número mayor en el vector es: " + mayor_f);
-                    System.out.println();
+                } // Si el usuario elige la opción dos.
+                else if (option == 2) {
+
+                    // Escribimos al socket la opción seleccionada para que inicie
+                    // el proceso correcto de leer los datos necesarios.
+                    socketOut.write(intToByteArray(option));
+                    socketOut.flush();
+    
+                    // Pedimos y leemos la longitud del vector sonbre el que
+                    // se trabajará.
+                    System.out.println("What is the vector's size?");
+                    int vectorSize = input.nextInt();
+
+                    // Escribimos al socket el tamaño del vector leído
+                    // para que el servidor comience a prepararse
+                    socketOut.write(intToByteArray(vectorSize));
+                    socketOut.flush();
+                    
+                    // Pedimos los valores del vector al usuario.
+                    System.out.println("Input the vector's values:");
+
+                    // Creamos un vector para almacenar los valores.
+                    float[] vectorValues = new float[vectorSize];
+
+                    // Leemos y almacenamos los valores introducidos por el
+                    // usuario.
+                    for (int i = 0; i < vectorValues.length; i++) {
+                        System.out.println("Value " + (i + 1) + ": ");
+                        vectorValues[i] = input.nextFloat();
+                    }
+
+                    // Escribimos y enviamos al socket.
+                    socketOut.write(floatsToByteArray(vectorValues));
+                    socketOut.flush();
+
+                    // Creamos un vector para almacenar los valores recibidos
+                    // del servidor.
+                    byte[] highest = new byte[4];
+                    for (int i = 0; i < 4; i++) {
+                        highest[i] = socketIn.readByte();
+                    }
+
+                    // Creamos un vector de flotantes que inicializamos
+                    // fácilmente con funciones de la clase ByteBuffer
+                    float highestFloat = ByteBuffer.wrap(highest).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+                    System.out.println("El número mayor en el vector es: " + highestFloat);
                     System.out.println();
                 }
                 else {
                     System.out.println("Elija una de las 3 opciones por favor:");
                 }
-                mostrarMenu();
-                opcion = entrada.nextInt();
+                showMenu();
+                option = input.nextInt();
             }
-            socket.close();
-            entradaSocket.close();
-            salidaSocket.close();
-            entrada.close();
+            // entradaSocket.close();
+            // salidaSocket.close();
+            // socket.close();
+            input.close();
         }
         catch (UnknownHostException e) {
             // TODO Auto-generated catch block
@@ -154,56 +227,157 @@ class Client {
         }
     }
 
-    public static void mostrarMenu() {
+    // **************************************************************
+    // Java, por defecto, trabajo con datos en orden "Big Endian"
+    // donde el byte más significativo es el primero en espacio
+    // de memoria, por ello, debemos tomar unos pasos extra para
+    // reacomodar los bytes escritos a orden "Little Endian" para
+    // el servidor en C, que espera datos en este orden. Para ello
+    // se crearon estas funciones de utilidad para convertir
+    // ints y floats a little endian.
+    public static byte[] intToByteArray(int number) {
+
+        // Creamos un objeto ByteBuffer para almacenar y reordenar los
+        // bytes de la opción elegida por el usuario, le damos espacio
+        // para 4 bytes, que es el tamaño de un entero de 32 bits.
+        ByteBuffer intBuffer = ByteBuffer.allocate(4);
+
+        // Cambiamos el ordenamiento de los bytes a little endian.
+        intBuffer.order(ByteOrder.LITTLE_ENDIAN);
+
+        // Insertamos el entero al ByteBuffer
+        intBuffer.putInt(number);
+
+        // Regresamos el vector de bytes para ser procesado.
+        return intBuffer.array();
+    }
+
+    public static byte[] floatsToByteArray(float[] numbers) {
+
+        // Creamos un objeto ByteBuffer para alamcenar y reordenar los
+        // bytes que representarán los valores obtenidos del usuario
+        // mediante el cliente.
+        ByteBuffer numbersBuffer = ByteBuffer.allocate(numbers.length * 4);
+
+        // Cambiamos el ordenamiento de los bytes a little endian.
+        numbersBuffer.order(ByteOrder.LITTLE_ENDIAN);
+
+        // Insertamos todos los flotantes leídos al vector de
+        // bytes ordenado en little endian.
+        for (float number : numbers) {
+            numbersBuffer.putFloat(number);
+        }
+
+        // Regresamos el vector de bytes para ser procesado.
+        return numbersBuffer.array();
+    }
+
+    // ***************************************************************
+
+    // Simple función para imprimir el menú al usuario del cliente.
+    public static void showMenu() {
         System.out.println("1. Addition");
         System.out.println("2. Greatest");
         System.out.println("3. Exit");
     }
 
-    public static float[][] leerValoresMatriz(int ancho, int alto) {
-        float[][] matriz = new float[ancho][alto];
-        int contador = 0;
-        for (int i = 0; i < alto; i++) {
-            for (int j = 0; j < ancho; j++) {
-                System.out.println("Ingrese el siguiente valor de la matriz: ");
-                imprimirMatriz(matriz, ancho, alto, contador);
-                matriz[j][i] = entrada.nextFloat();
-                contador++;
+    // Esta función se encarga de leer los valores de una matriz
+    // dándole el ancho y alto de la matriz a leer.
+    public static float[][] readMatrixValues(int width, int height) {
+
+        // Creamos una matriz para almacenar los datos leídos de
+        // lo que el usuario ingrese.
+        float[][] matrix = new float[width][height];
+
+        // Creamos una variable de apoyo para almacenar en qué elemento
+        // de la matriz nos encontramos leyendo, esta variable se la
+        // pasaremos más adelante a la función `imprimirMatriz` para
+        // visualizar el elemento actual que el usuario está registrando.
+        int counter = 0;
+
+        // Recorremos la matriz a su alto en este ciclo.
+        for (int i = 0; i < height; i++) {
+
+            // Recorremos la matriz a su ancho en este ciclo.
+            for (int j = 0; j < width; j++) {
+
+                // Pedimos el siguiente valor de la matriz al usuario.
+                System.out.println("Input the matrix's next value: ");
+
+                // Llamamos la función `imprimirMatriz` como apoyo visual para
+                // el usuario.
+                printMatrix(matrix, width, height, counter);
+
+                // Almacenamos el valor leído en el espacio correspondiente
+                // de la matriz.
+                matrix[j][i] = input.nextFloat();
+
+                // Incrementamos la variable de apoyo para que apunte al
+                // siguiente elemento en el siguiente ciclo.
+                counter++;
             }
         }
+
+        // Finalmente, fuera del ciclo y denotada por guiones, mostramos
+        // la matriz como se ve al finalizar la lectura de sus valores.
         System.out.println("-------------------------------");
-        imprimirMatriz(matriz, ancho, alto, contador);
+        printMatrix(matrix, width, height, counter);
         System.out.println("-------------------------------");
-        return matriz;
+
+        // Regresamos la matriz bidimensional a quien llamó esta función.
+        return matrix;
     }
 
-    public static void imprimirMatriz(float[][] matriz, int ancho, int alto, int siguiente) {
-        int contador = 0;
-        for (int i = 0; i < alto; i++) {
-            for (int j = 0; j < ancho; j++) {
-                if (contador == siguiente) {
+    // Esta función muestra la matriz dada y denota su elemento con
+    // índice `siguiente` con #.#
+    public static void printMatrix(float[][] matrix, int width, int height, int next) {
+        int counter = 0;
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                if (counter == next) {
                     System.out.print("#.#");
                 }
                 else {
-                    System.out.print(matriz[j][i]);
+                    System.out.print(matrix[j][i]);
                 }
                 System.out.print("\t");
-                contador++;
+                counter++;
             }
             System.out.println();
         }
     }
 
-    public static float[] matriz2Da1D(float[][] matriz, int ancho, int alto) {
-        float[] matriz1D = new float[ancho * alto];
-        int contador = 0;
-        for (int i = 0; i < alto; i++) {
-            for (int j = 0; j < ancho; j++) {
-                matriz1D[contador] = matriz[j][i];
-                contador++;
+    // Esta función cumple la función de convertir una matriz 2D y
+    // la convierte en un vector o arreglo unidimensional con sus
+    // valores correctos, moviendo cada fila de la matriz y
+    // ordenándolas de manera lineal una detrás de la otra.
+    public static float[] matrix2DTo1D(float[][] matrix, int width, int height) {
+
+        // Creamos un vector para almacenar los valores de la matriz
+        // de manera lineal o unidimensional, le damos espacio para
+        // almacenar el número de elementos que tenga la matriz dada.
+        float[] matrix1D = new float[width * height];
+
+        // Creamos una variable de apoyo para llevar control del índice
+        // en el vector representativo de la matriz 2D.
+        int counter = 0;
+
+        // En estos ciclos recorremos cada índice de la matriz.
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+
+                // Almacenamos el valor de la matriz correspondiente
+                // al vector unidimensional.
+                matrix1D[counter] = matrix[j][i];
+
+                // Incrementamos la variable de apoyo.
+                counter++;
             }
         }
-        return matriz1D;
+
+        // Regresamos el vector unidimensional que contiene todos los valores
+        // de la matriz bidimensional inicial.
+        return matrix1D;
     }
 
 }
