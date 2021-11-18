@@ -97,10 +97,49 @@ void matrices(int socketfd)
 			// Finalmente, enviamos al cliente la matriz resultante en forma de vector.
 			send(socketfd, matrix_result, 4 * matrix_elements, MSG_NOSIGNAL);
 		}
+		else if (selected_option == 3)
+		{
+			// Creamos variables que contendrán el número de columnas, filas
+			// y elementos totales de las matrices.
+			int matrix_columns, matrix_rows, matrix_elements;
 
+			// Leemos del socket para obtener los números anteriormente
+			// mencionados y calculamos el total de elementos en las matrices
+			// en base a ellos.
+			recv(socketfd, &matrix_columns, sizeof(int), MSG_NOSIGNAL);
+			recv(socketfd, &matrix_rows, sizeof(int), MSG_NOSIGNAL);
+			matrix_elements = matrix_columns * matrix_rows;
+
+			// Una vez que sabemos las dimensiones de las matrices, podemos
+			// crear dos vectores que fungirán de matrices.
+			float matrix_one[matrix_elements];
+			float matrix_two[matrix_elements];
+
+			// Leemos dos veces más del socket para obtener los flotantes que
+			// el cliente envió para cada matriz.
+			recv(socketfd, &matrix_one, sizeof(float) * matrix_elements, MSG_NOSIGNAL);
+			recv(socketfd, &matrix_two, sizeof(float) * matrix_elements, MSG_NOSIGNAL);
+
+			// Creamos una variable para almacenar si es verdadero o falso que las
+			// matrices sean iguales.
+			char equal = 1;
+
+			// Recorremos las matrices revisando que cada valor sea igual, sino
+			// cambiamos el valor de la variable `equal`
+			for (int i = 0; i < matrix_elements; i++)
+			{
+				if (matrix_one[i] != matrix_two[i])
+				{
+					equal = 0;
+				}
+			}
+
+			// Enviamos al socket para que el cliente lea, el valor booleano.
+			send(socketfd, &equal, sizeof(char), MSG_NOSIGNAL);
+		}
 		// El cliente envió la opción 2, encontrar el flotante mayor en
 		// un vector.
-		else if (selected_option == 2)
+		else if (selected_option == 4)
 		{
 			// Creamos una variable que contendrá el tamaño del vector.
 			int vector_size;

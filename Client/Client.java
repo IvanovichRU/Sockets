@@ -51,10 +51,8 @@ class Client {
             option = input.nextInt();
 
             // Ahora dependiendo de la opción elegida, hacemos distintos procesos.
-            while (option != 3) {
-
-                // Si el usuario elige la opción uno:
-                if (option == 1) {
+            while (option != 5) {
+                if (option == 1) { // Si el usuario elige la opción uno:
 
                     // Escribimos al socket la opción seleccionada para que inicie
                     // el proceso correcto de leer los datos necesarios.
@@ -74,6 +72,7 @@ class Client {
 
                     // Revisamos que sean de las mismas dimensiones las matrices.
                     if (matrixOneWidth != matrixTwoWidth || matrixOneHeight != matrixTwoHeight) {
+
                         // Sino, solo se lo indicamos al usuario y regresamos al menú.
                         System.out.println("The matrices are not the same size, the sum is not possible.");
                     }
@@ -158,8 +157,79 @@ class Client {
 
                         // Finalmente salimos de esta condicional y regresamos al menú.
                     }
-                } // Si el usuario elige la opción dos.
-                else if (option == 2) {
+                }
+                else if (option == 3) { // Si el usuario elige la opción tres:
+
+                    // Escribimos al socket la opción seleccionada para que inicie
+                    // el proceso correcto de leer los datos necesarios.
+                    socketOut.write(intToByteArray(option));
+                    socketOut.flush();
+
+                    // Pedimos y leemos los tamaños de ambas matrices a sumar para
+                    // verificar que sean de las mismas dimensiones.
+                    System.out.print("Input the number of columns for the first matrix: ");
+                    int matrixOneWidth = input.nextInt();
+                    System.out.print("Input the number of rows for the first matrix: ");
+                    int matrixOneHeight = input.nextInt();
+                    System.out.print("Input the number of columns for the second matrix: ");
+                    int matrixTwoWidth = input.nextInt();
+                    System.out.print("Input the number of rows for the second matrix: ");
+                    int matrixTwoHeight = input.nextInt();
+
+                    // Revisamos que sean de las mismas dimensiones las matrices.
+                    if (matrixOneWidth != matrixTwoWidth || matrixOneHeight != matrixTwoHeight) {
+
+                        // Sino, solo se lo indicamos al usuario y regresamos al menú.
+                        System.out.println("The matrices are not the same size, the sum is not possible.");
+                    }
+                    else {
+
+                        // Escribimos al socket los tamaños de las matrices.
+                        socketOut.write(intToByteArray(matrixOneWidth));
+                        socketOut.write(intToByteArray(matrixOneHeight));
+                        socketOut.flush();
+
+                        // Pedimos y leemos los valores de ambas matrices.
+                        System.out.println("Input the first matrix's values:");
+                        float[][] matrixOne = readMatrixValues(matrixOneWidth, matrixTwoHeight);
+                        System.out.println("Input the second matrix's values");
+                        float[][] matrixTwo = readMatrixValues(matrixOneWidth, matrixTwoHeight);
+
+                        // Para el fácil manejo, el servidor recibe los datos de manera lineal
+                        // entonces debemos mover los valores leídos de un vector bidimensional
+                        // a uno lineal.
+                        float[] matrixOne1D = matrix2DTo1D(matrixOne, matrixOneWidth, matrixOneHeight);
+                        float[] matrixTwo1D = matrix2DTo1D(matrixTwo, matrixOneWidth, matrixOneHeight);
+
+                        // Escribimos los valores leídos de las matrices una vez
+                        // almacenados unidimensionalmente, al socket.
+                        socketOut.write(floatsToByteArray(matrixOne1D));
+                        socketOut.write(floatsToByteArray(matrixTwo1D));
+                        socketOut.flush();
+
+                        // Creamos un vector en donde almacenar el valor
+                        // booleano que envía el servidor.
+                        byte[] matrixResultBytes = new byte[1];
+                        matrixResultBytes[0] = socketIn.readByte();
+
+                        // Creamos una variable booleana donde guardaremos
+                        // el resultado enviado por el servidor.
+                        boolean result = (matrixResultBytes[0]!=0);
+
+                        // Revisamos el valor de la booleana leída para determinar
+                        // el mensaje que le mostramos al usuario.
+                        if (result) {
+                            System.out.println("Las matrices son equivalentes.");
+                        }
+                        else {
+                            System.out.println("Las matrices no son equivalentes.");
+                        }
+
+                        // Finalmente salimos de esta condicional y regresamos al menú.
+                    }
+
+                }
+                else if (option == 4) { // Si el usuario elige la opción cuatro:
 
                     // Escribimos al socket la opción seleccionada para que inicie
                     // el proceso correcto de leer los datos necesarios.
@@ -207,7 +277,7 @@ class Client {
                     System.out.println();
                 }
                 else {
-                    System.out.println("Elija una de las 3 opciones por favor:");
+                    System.out.println("Elija una de las 5 opciones por favor:");
                 }
                 showMenu();
                 option = input.nextInt();
@@ -277,8 +347,10 @@ class Client {
     // Simple función para imprimir el menú al usuario del cliente.
     public static void showMenu() {
         System.out.println("1. Addition");
-        System.out.println("2. Greatest");
-        System.out.println("3. Exit");
+        System.out.println("2. Multiply");
+        System.out.println("3. Equal");
+        System.out.println("4. Greatest");
+        System.out.println("5. Exit");
     }
 
     // Esta función se encarga de leer los valores de una matriz
