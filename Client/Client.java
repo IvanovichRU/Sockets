@@ -158,6 +158,92 @@ class Client {
                         // Finalmente salimos de esta condicional y regresamos al menú.
                     }
                 }
+                else if (option == 2) {
+
+                    // Escribimos al socket la opción seleccionada para que inicie
+                    // el proceso correcto de leer los datos necesarios.
+                    socketOut.write(intToByteArray(option));
+                    socketOut.flush();
+
+                    // Pedimos y leemos los tamaños de ambas matrices a sumar para
+                    // verificar que sean de las mismas dimensiones.
+                    System.out.print("Input the number of columns for the first matrix: ");
+                    int matrixOneWidth = input.nextInt();
+                    System.out.print("Input the number of rows for the first matrix: ");
+                    int matrixOneHeight = input.nextInt();
+                    System.out.print("Input the number of columns for the second matrix: ");
+                    int matrixTwoWidth = input.nextInt();
+                    System.out.print("Input the number of rows for the second matrix: ");
+                    int matrixTwoHeight = input.nextInt();
+
+                    // Revisamos que sean de las mismas dimensiones las matrices.
+                    if (matrixOneWidth != matrixTwoHeight) {
+
+                        // Sino, solo se lo indicamos al usuario y regresamos al menú.
+                        System.out.println("The matrices are not the correct size, the multiplication is not possible.");
+                    }
+                    else {
+
+                        // Escribimos al socket los tamaños de las matrices.
+                        socketOut.write(intToByteArray(matrixOneWidth));
+                        socketOut.write(intToByteArray(matrixOneHeight));
+                        socketOut.flush();
+
+                        // Escribimos al socket los tamaños de las matrices.
+                        socketOut.write(intToByteArray(matrixTwoWidth));
+                        socketOut.write(intToByteArray(matrixTwoHeight));
+                        socketOut.flush();
+
+                        // Pedimos y leemos los valores de ambas matrices.
+                        System.out.println("Input the first matrix's values:");
+                        float[][] matrixOne = readMatrixValues(matrixOneWidth, matrixOneHeight);
+                        System.out.println("Input the second matrix's values");
+                        float[][] matrixTwo = readMatrixValues(matrixTwoWidth, matrixTwoHeight);
+                        
+                        float[] matrix1DOne = matrix2DTo1D(matrixOne, matrixOneWidth, matrixOneHeight);
+                        float[] matrix1DTwo = matrix2DTo1D(matrixTwo, matrixTwoWidth, matrixTwoHeight);
+
+                        socketOut.write(floatsToByteArray(matrix1DOne));
+                        socketOut.write(floatsToByteArray(matrix1DTwo));
+                        socketOut.flush();
+
+                        float[] matrixResult = new float[matrixOneHeight * matrixTwoWidth];
+
+                        // Creamos un vector en donde almacenar el resultado de
+                        // la multiplicación de matrices en preparación a la
+                        // respuesta del servidor.
+                        byte[] matrixResultBytes = new byte[4 * matrixResult.length];
+
+                        // Leemos los datos enviados al socket por el servidor
+                        // y los insertamos en el vector unidimensional
+                        // que creamos anteriormente.
+                        System.out.println("Test 1");
+                        for (int i = 0; i < 4 * matrixResult.length; i++) {
+                            System.out.println("Test 2");
+                            matrixResultBytes[i] = socketIn.readByte();
+                            System.out.println("Test 3");
+                        }
+                        System.out.println("Test 4");
+
+                        ByteBuffer matrixResultBuffer = ByteBuffer.wrap(matrixResultBytes);
+                        matrixResultBuffer.order(ByteOrder.LITTLE_ENDIAN);
+
+                        for (int i = 0; i < matrixResult.length; i++) {
+                            matrixResult[i] = matrixResultBuffer.getFloat();
+                        }
+
+                        int counter = 0;
+                        System.out.println("The resulting matrix from the multiplication is:");
+                        for (int i = 0; i < matrixOneHeight; i++)  {
+                            for (int j = 0; j < matrixTwoWidth; j++) {
+                                System.out.print(matrixResult[counter] + "\t");
+                                counter++;
+                            }
+                            System.out.println();
+                        }
+
+                    }
+                }
                 else if (option == 3) { // Si el usuario elige la opción tres:
 
                     // Escribimos al socket la opción seleccionada para que inicie
@@ -227,7 +313,6 @@ class Client {
 
                         // Finalmente salimos de esta condicional y regresamos al menú.
                     }
-
                 }
                 else if (option == 4) { // Si el usuario elige la opción cuatro:
 

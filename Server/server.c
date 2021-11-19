@@ -1,10 +1,8 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <errno.h>
 
 #define SA struct sockaddr
 
@@ -33,6 +31,17 @@ float find_highest(float *numbers, int size)
 	}
 	// La función regresa el mayor flotante encontrado en el vector.
 	return current_highest;
+}
+
+float **matrix_1D_to_2D(float *values1D, int height, int width)
+{
+
+	float **rows = malloc(height*sizeof(float*));
+	for (int i = 0; i < height; i++)
+	{
+		rows[i] = values1D + i * width;
+	}
+	return rows;
 }
 
 void matrices(int socketfd)
@@ -96,6 +105,44 @@ void matrices(int socketfd)
 
 			// Finalmente, enviamos al cliente la matriz resultante en forma de vector.
 			send(socketfd, matrix_result, 4 * matrix_elements, MSG_NOSIGNAL);
+		}
+		else if (selected_option == 2) {
+			int matrix_one_columns, matrix_one_rows, matrix_two_columns, matrix_two_rows, resulting_matrix_elements;
+
+			// Leemos los valores de columnas y filas de ambas matrices.
+			recv(socketfd, &matrix_one_columns, sizeof(int), MSG_NOSIGNAL);
+			recv(socketfd, &matrix_one_rows, sizeof(int), MSG_NOSIGNAL);
+			recv(socketfd, &matrix_two_columns, sizeof(int), MSG_NOSIGNAL);
+			recv(socketfd, &matrix_two_rows, sizeof(int), MSG_NOSIGNAL);
+
+			// Creamos vectores para almacenar las matrices enviadas
+			// por el cliente.
+			float matrix_one[matrix_one_columns * matrix_one_rows];
+			float matrix_two[matrix_two_columns * matrix_two_rows];
+
+			recv(socketfd, matrix_one, sizeof(matrix_one), MSG_NOSIGNAL);
+			recv(socketfd, matrix_two, sizeof(matrix_two), MSG_NOSIGNAL);
+
+			float **matrix_one_2D = matrix_1D_to_2D(matrix_one, matrix_one_rows, matrix_one_columns);
+			float **matrix_two_2D = matrix_1D_to_2D(matrix_two, matrix_two_rows, matrix_two_columns);
+
+			float matrix_result[matrix_one_rows * matrix_two_columns];
+			
+			int counter = 0;
+			float sum_of_iteration = 0;
+			for (int matrix_one_current_row = 0; matrix_one_current_row < matrix_one_rows; matrix_one_current_row++)
+			{
+				for (int matrix_two_current_column = 0; matrix_two_current_column < matrix_two_columns; matrix_two_current_column++)
+				{
+					for (int i = 0; i < matrix_one_columns; i++)
+					{
+						sum_of_iteration += matrix_one_2D[matrix_one_current_row][i] * matrix_two_2D[i][matrix_two_current_column];
+					}
+					matrix_result[counter++] = sum_of_iteration;
+					sum_of_iteration = 0;
+				}
+			}
+			send(socketfd, matrix_result, sizeof(matrix_result), MSG_NOSIGNAL);
 		}
 		else if (selected_option == 3)
 		{
@@ -173,7 +220,6 @@ void matrices(int socketfd)
 	}
 }
 
-// Driver function
 int main()
 {
 	// Creación y verificación del socket.
