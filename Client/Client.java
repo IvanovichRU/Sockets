@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 class Client {
@@ -34,7 +35,7 @@ class Client {
         // Socket, DataOutputStream y DataInputStream en un try
         // debido a que pueden lanzar excepciones.
         try {
-            
+
             // Inicializamos el socket con la IP de loopback
             // en el puerto 8000
             socket = new Socket("127.0.0.1", 8000);
@@ -47,8 +48,9 @@ class Client {
             // Mostramos por primera vez el menú que se mostrará al usuario.
             showMenu();
 
-            // Leemos qué opción elige el usuario con el escaner.
-            option = input.nextInt();
+            // Leemos qué opción elige el usuario con el escaner, asegurándonos
+            // de que sea del tipo correcto y no continuar hasta que lo sea.
+            option = readInt();
 
             // Ahora dependiendo de la opción elegida, hacemos distintos procesos.
             while (option != 5) {
@@ -62,21 +64,27 @@ class Client {
                     // Pedimos y leemos los tamaños de ambas matrices a sumar para
                     // verificar que sean de las mismas dimensiones.
                     System.out.print("Input the number of columns for the first matrix: ");
-                    int matrixOneWidth = input.nextInt();
+
+                    // Leemos qué opción elige el usuario con el escaner, asegurándonos
+                    // de que sea del tipo correcto y no continuar hasta que lo sea con
+                    // ayuda de la función `readInt`.
+                    int matrixOneWidth = readInt();
+
+                    // Pedimos y leemos los tamaños de ambas matrices asegurándonos
+                    // de que sean del tipo correcto y no continuar hasta que lo sean.
                     System.out.print("Input the number of rows for the first matrix: ");
-                    int matrixOneHeight = input.nextInt();
+                    int matrixOneHeight = readInt();
                     System.out.print("Input the number of columns for the second matrix: ");
-                    int matrixTwoWidth = input.nextInt();
+                    int matrixTwoWidth = readInt();
                     System.out.print("Input the number of rows for the second matrix: ");
-                    int matrixTwoHeight = input.nextInt();
+                    int matrixTwoHeight = readInt();
 
                     // Revisamos que sean de las mismas dimensiones las matrices.
                     if (matrixOneWidth != matrixTwoWidth || matrixOneHeight != matrixTwoHeight) {
 
                         // Sino, solo se lo indicamos al usuario y regresamos al menú.
                         System.out.println("The matrices are not the same size, the sum is not possible.");
-                    }
-                    else {
+                    } else {
 
                         // Escribimos al socket los tamaños de las matrices.
                         socketOut.write(intToByteArray(matrixOneWidth));
@@ -157,8 +165,7 @@ class Client {
 
                         // Finalmente salimos de esta condicional y regresamos al menú.
                     }
-                }
-                else if (option == 2) {
+                } else if (option == 2) {
 
                     // Escribimos al socket la opción seleccionada para que inicie
                     // el proceso correcto de leer los datos necesarios.
@@ -168,21 +175,21 @@ class Client {
                     // Pedimos y leemos los tamaños de ambas matrices a sumar para
                     // verificar que sean de las mismas dimensiones.
                     System.out.print("Input the number of columns for the first matrix: ");
-                    int matrixOneWidth = input.nextInt();
+                    int matrixOneWidth = readInt();
                     System.out.print("Input the number of rows for the first matrix: ");
-                    int matrixOneHeight = input.nextInt();
+                    int matrixOneHeight = readInt();
                     System.out.print("Input the number of columns for the second matrix: ");
-                    int matrixTwoWidth = input.nextInt();
+                    int matrixTwoWidth = readInt();
                     System.out.print("Input the number of rows for the second matrix: ");
-                    int matrixTwoHeight = input.nextInt();
+                    int matrixTwoHeight = readInt();
 
                     // Revisamos que sean de las mismas dimensiones las matrices.
                     if (matrixOneWidth != matrixTwoHeight) {
 
                         // Sino, solo se lo indicamos al usuario y regresamos al menú.
-                        System.out.println("The matrices are not the correct size, the multiplication is not possible.");
-                    }
-                    else {
+                        System.out
+                                .println("The matrices are not the correct size, the multiplication is not possible.");
+                    } else {
 
                         // Escribimos al socket los tamaños de las matrices.
                         socketOut.write(intToByteArray(matrixOneWidth));
@@ -199,7 +206,7 @@ class Client {
                         float[][] matrixOne = readMatrixValues(matrixOneWidth, matrixOneHeight);
                         System.out.println("Input the second matrix's values");
                         float[][] matrixTwo = readMatrixValues(matrixTwoWidth, matrixTwoHeight);
-                        
+
                         float[] matrix1DOne = matrix2DTo1D(matrixOne, matrixOneWidth, matrixOneHeight);
                         float[] matrix1DTwo = matrix2DTo1D(matrixTwo, matrixTwoWidth, matrixTwoHeight);
 
@@ -217,24 +224,25 @@ class Client {
                         // Leemos los datos enviados al socket por el servidor
                         // y los insertamos en el vector unidimensional
                         // que creamos anteriormente.
-                        System.out.println("Test 1");
                         for (int i = 0; i < 4 * matrixResult.length; i++) {
-                            System.out.println("Test 2");
                             matrixResultBytes[i] = socketIn.readByte();
-                            System.out.println("Test 3");
                         }
-                        System.out.println("Test 4");
 
+                        // Creamos un espacio para almacenar y reordenar a big endian los
+                        // bytes leídos del servidor.
                         ByteBuffer matrixResultBuffer = ByteBuffer.wrap(matrixResultBytes);
                         matrixResultBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
+                        // Convertimos los bytes a un arreglo de floats.
                         for (int i = 0; i < matrixResult.length; i++) {
                             matrixResult[i] = matrixResultBuffer.getFloat();
                         }
 
+                        // Con ayuda de una variable de apoyo, imprimimos por columnas
+                        // y filas la matriz resultante de la multiplicación.
                         int counter = 0;
                         System.out.println("The resulting matrix from the multiplication is:");
-                        for (int i = 0; i < matrixOneHeight; i++)  {
+                        for (int i = 0; i < matrixOneHeight; i++) {
                             for (int j = 0; j < matrixTwoWidth; j++) {
                                 System.out.print(matrixResult[counter] + "\t");
                                 counter++;
@@ -243,8 +251,7 @@ class Client {
                         }
 
                     }
-                }
-                else if (option == 3) { // Si el usuario elige la opción tres:
+                } else if (option == 3) { // Si el usuario elige la opción tres:
 
                     // Escribimos al socket la opción seleccionada para que inicie
                     // el proceso correcto de leer los datos necesarios.
@@ -254,21 +261,20 @@ class Client {
                     // Pedimos y leemos los tamaños de ambas matrices a sumar para
                     // verificar que sean de las mismas dimensiones.
                     System.out.print("Input the number of columns for the first matrix: ");
-                    int matrixOneWidth = input.nextInt();
+                    int matrixOneWidth = readInt();
                     System.out.print("Input the number of rows for the first matrix: ");
-                    int matrixOneHeight = input.nextInt();
+                    int matrixOneHeight = readInt();
                     System.out.print("Input the number of columns for the second matrix: ");
-                    int matrixTwoWidth = input.nextInt();
+                    int matrixTwoWidth = readInt();
                     System.out.print("Input the number of rows for the second matrix: ");
-                    int matrixTwoHeight = input.nextInt();
+                    int matrixTwoHeight = readInt();
 
                     // Revisamos que sean de las mismas dimensiones las matrices.
                     if (matrixOneWidth != matrixTwoWidth || matrixOneHeight != matrixTwoHeight) {
 
                         // Sino, solo se lo indicamos al usuario y regresamos al menú.
                         System.out.println("The matrices are not the same size, the sum is not possible.");
-                    }
-                    else {
+                    } else {
 
                         // Escribimos al socket los tamaños de las matrices.
                         socketOut.write(intToByteArray(matrixOneWidth));
@@ -300,37 +306,35 @@ class Client {
 
                         // Creamos una variable booleana donde guardaremos
                         // el resultado enviado por el servidor.
-                        boolean result = (matrixResultBytes[0]!=0);
+                        boolean result = (matrixResultBytes[0] != 0);
 
                         // Revisamos el valor de la booleana leída para determinar
                         // el mensaje que le mostramos al usuario.
                         if (result) {
                             System.out.println("Las matrices son equivalentes.");
-                        }
-                        else {
+                        } else {
                             System.out.println("Las matrices no son equivalentes.");
                         }
 
                         // Finalmente salimos de esta condicional y regresamos al menú.
                     }
-                }
-                else if (option == 4) { // Si el usuario elige la opción cuatro:
+                } else if (option == 4) { // Si el usuario elige la opción cuatro:
 
                     // Escribimos al socket la opción seleccionada para que inicie
                     // el proceso correcto de leer los datos necesarios.
                     socketOut.write(intToByteArray(option));
                     socketOut.flush();
-    
+
                     // Pedimos y leemos la longitud del vector sonbre el que
                     // se trabajará.
                     System.out.println("What is the vector's size?");
-                    int vectorSize = input.nextInt();
+                    int vectorSize = readInt();
 
                     // Escribimos al socket el tamaño del vector leído
                     // para que el servidor comience a prepararse
                     socketOut.write(intToByteArray(vectorSize));
                     socketOut.flush();
-                    
+
                     // Pedimos los valores del vector al usuario.
                     System.out.println("Input the vector's values:");
 
@@ -341,7 +345,7 @@ class Client {
                     // usuario.
                     for (int i = 0; i < vectorValues.length; i++) {
                         System.out.println("Value " + (i + 1) + ": ");
-                        vectorValues[i] = input.nextFloat();
+                        vectorValues[i] = readFloat();
                     }
 
                     // Escribimos y enviamos al socket.
@@ -360,23 +364,23 @@ class Client {
                     float highestFloat = ByteBuffer.wrap(highest).order(ByteOrder.LITTLE_ENDIAN).getFloat();
                     System.out.println("El número mayor en el vector es: " + highestFloat);
                     System.out.println();
+                } else {
+                    System.out.println("Elija una de las 5 opciones por favor...");
                 }
-                else {
-                    System.out.println("Elija una de las 5 opciones por favor:");
-                }
+
+                // Luego del procesamiento, volvemos a mostrar el menú y leemos
+                // la opción elegida.
                 showMenu();
-                option = input.nextInt();
+                option = readInt();
             }
-            // entradaSocket.close();
-            // salidaSocket.close();
-            // socket.close();
+            socketIn.close();
+            socketOut.close();
+            socket.close();
             input.close();
-        }
-        catch (UnknownHostException e) {
+        } catch (UnknownHostException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -438,6 +442,96 @@ class Client {
         System.out.println("5. Exit");
     }
 
+    // ***************************************************************
+    // Funciones que aseguran la lectura del tipo correcto de dato
+    // Si no se lee el tipo correcto, muestran un mensaje y piden
+    // de nuevo la entrada del usuario de nuevo.
+    public static int readInt() {
+
+        // Creamos una variable que contendrá la entrada del usuario.
+        int intRead;
+
+        // Creamos un ciclo infinito que pedirá entrada del usuario
+        // por siempre si no se ingresa el tipo de dato correcto.
+        while (true) {
+
+            // Usamos una sentencia `try` para atrapar la excepción
+            // lanzada al recibir un tipo de dato incorrecto.
+            try {
+
+                // Intentamos leer un entero.
+                intRead = input.nextInt();
+
+                // Si se lee un entero correctamente, salimos del
+                // ciclo infinito.
+                break;
+
+            // En caso de que la línea 463 lance una excepción, la
+            // atrapamos
+            } catch (InputMismatchException e) {
+
+                // Consumimos el "enter" que el usuario dió al ingresar
+                // el dato en la línea 463.
+                input.nextLine();
+
+                // Le hacemos saber al usuario que no introdujo un valor
+                // correcto.
+                System.out.println("Ingresó un valor inválido, por favor ingrese un valor válido.");
+
+                // Terminamos la iteración actual del ciclo infinito 
+                // e iniciamos una nueva.
+                continue;
+            }
+        }
+
+        // Regresamos el entero leído correctamente.
+        return intRead;
+    }
+
+    public static float readFloat() {
+
+        // Creamos una variable que contendrá la entrada del usuario.
+        float floatRead;
+
+        // Creamos un ciclo infinito que pedirá entrada del usuario
+        // por siempre si no se ingresa el tipo de dato correcto.
+        while (true) {
+
+            // Usamos una sentencia `try` para atrapar la excepción
+            // lanzada al recibir un tipo de dato incorrecto.
+            try {
+
+                // Intentamos leer un flotante.
+                floatRead = input.nextFloat();
+
+                // Si se lee un flotante correctamente, salimos del
+                // ciclo infinito.
+                break;
+
+            // En caso de que la línea 503 lance una excepción, la
+            // atrapamos
+            } catch (InputMismatchException e) {
+
+                // Consumimos el "enter" que el usuario dió al ingresar
+                // el dato en la línea 503.
+                input.nextLine();
+
+                // Le hacemos saber al usuario que no introdujo un valor
+                // correcto.
+                System.out.println("Ingresó un valor inválido, por favor ingrese un valor válido.");
+
+                // Terminamos la iteración actual del ciclo infinito 
+                // e iniciamos una nueva.
+                continue;
+            }
+        }
+
+        // Regresamos el flotante leído correctamente.
+        return floatRead;
+    }
+
+    // ***************************************************************
+
     // Esta función se encarga de leer los valores de una matriz
     // dándole el ancho y alto de la matriz a leer.
     public static float[][] readMatrixValues(int width, int height) {
@@ -467,7 +561,7 @@ class Client {
 
                 // Almacenamos el valor leído en el espacio correspondiente
                 // de la matriz.
-                matrix[j][i] = input.nextFloat();
+                matrix[j][i] = readFloat();
 
                 // Incrementamos la variable de apoyo para que apunte al
                 // siguiente elemento en el siguiente ciclo.
@@ -493,8 +587,7 @@ class Client {
             for (int j = 0; j < width; j++) {
                 if (counter == next) {
                     System.out.print("#.#");
-                }
-                else {
+                } else {
                     System.out.print(matrix[j][i]);
                 }
                 System.out.print("\t");

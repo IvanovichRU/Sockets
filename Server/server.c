@@ -33,14 +33,23 @@ float find_highest(float *numbers, int size)
 	return current_highest;
 }
 
+// Función para convertir una matriz unidimensional a una
+// bidimensional.
 float **matrix_1D_to_2D(float *values1D, int height, int width)
 {
 
+	// Creamos un arreglo de arreglos que contiene "filas"
 	float **rows = malloc(height*sizeof(float*));
+
+	// A cada fila le damos el espacio para el número de
+	// columnas que tiene la matriz y a la vez, insertamos
+	// los valores brindados a la función.
 	for (int i = 0; i < height; i++)
 	{
 		rows[i] = values1D + i * width;
 	}
+
+	// Regresamos el arreglo bidimensional.
 	return rows;
 }
 
@@ -107,6 +116,10 @@ void matrices(int socketfd)
 			send(socketfd, matrix_result, 4 * matrix_elements, MSG_NOSIGNAL);
 		}
 		else if (selected_option == 2) {
+
+			// Creamos variables para contener las dimensiones de las matrices
+			// y el número total de elementos que tendrá la matriz resultante
+			// de la multiplicación.
 			int matrix_one_columns, matrix_one_rows, matrix_two_columns, matrix_two_rows, resulting_matrix_elements;
 
 			// Leemos los valores de columnas y filas de ambas matrices.
@@ -120,14 +133,23 @@ void matrices(int socketfd)
 			float matrix_one[matrix_one_columns * matrix_one_rows];
 			float matrix_two[matrix_two_columns * matrix_two_rows];
 
+			// Leemos los valores flotantes de cada matriz enviados desde
+			// el cliente.
 			recv(socketfd, matrix_one, sizeof(matrix_one), MSG_NOSIGNAL);
 			recv(socketfd, matrix_two, sizeof(matrix_two), MSG_NOSIGNAL);
 
+			// Creamos las matrices bidimensionales con ayuda de la función
+			// `matrix_1D_to_2D` para poder recorrerlas de manera sencilla.
 			float **matrix_one_2D = matrix_1D_to_2D(matrix_one, matrix_one_rows, matrix_one_columns);
 			float **matrix_two_2D = matrix_1D_to_2D(matrix_two, matrix_two_rows, matrix_two_columns);
 
+			// Creamos una matriz unidimensional para enviar al cliente
+			// con los valores resultantes de la multiplicación.
 			float matrix_result[matrix_one_rows * matrix_two_columns];
 			
+			// Con ayuda de una variable de apoyo, rellenamos la matriz
+			// resultante recorriendo mediante 3 ciclos las matrices a
+			// multiplicar.
 			int counter = 0;
 			float sum_of_iteration = 0;
 			for (int matrix_one_current_row = 0; matrix_one_current_row < matrix_one_rows; matrix_one_current_row++)
@@ -142,6 +164,8 @@ void matrices(int socketfd)
 					sum_of_iteration = 0;
 				}
 			}
+
+			// Finalmente, enviamos la matriz resultante al cliente.
 			send(socketfd, matrix_result, sizeof(matrix_result), MSG_NOSIGNAL);
 		}
 		else if (selected_option == 3)
@@ -184,6 +208,7 @@ void matrices(int socketfd)
 			// Enviamos al socket para que el cliente lea, el valor booleano.
 			send(socketfd, &equal, sizeof(char), MSG_NOSIGNAL);
 		}
+
 		// El cliente envió la opción 2, encontrar el flotante mayor en
 		// un vector.
 		else if (selected_option == 4)
